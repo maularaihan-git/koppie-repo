@@ -3,12 +3,12 @@
 pkgname = koppie-update-manager
 pkgbase = koppie-update-manager
 xdata = pkgtype=pkg
-pkgver = 1.0.0-1
+pkgver = 1.0.0-2
 pkgdesc = Pusat Pembaruan Sistem Koppie Linux (Stable-Rolling Release)
 url = 
-builddate = 1789992733
+builddate = 1789993205
 packager = Unknown Packager
-size = 1684069
+size = 1813197
 arch = any
 license = GPL
 depend = python

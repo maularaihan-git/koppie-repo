@@ -1,7 +1,7 @@
 # Maintainer: Raihan <maularaihan-git>
 pkgname=koppie-driver-manager
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Aplikasi Deteksi Hardware & Manajemen Driver Otomatis Koppie Linux"
 arch=('any')
 license=('GPL')

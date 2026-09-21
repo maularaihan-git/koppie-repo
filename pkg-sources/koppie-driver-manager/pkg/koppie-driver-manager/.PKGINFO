@@ -3,12 +3,12 @@
 pkgname = koppie-driver-manager
 pkgbase = koppie-driver-manager
 xdata = pkgtype=pkg
-pkgver = 1.0.0-1
+pkgver = 1.0.0-2
 pkgdesc = Aplikasi Deteksi Hardware & Manajemen Driver Otomatis Koppie Linux
 url = 
-builddate = 1789992559
+builddate = 1789993200
 packager = Unknown Packager
-size = 1686675
+size = 1819179
 arch = any
 license = GPL
 depend = python

@@ -1,11 +1,11 @@
 format = 2
 pkgname = koppie-driver-manager
 pkgbase = koppie-driver-manager
-pkgver = 1.0.0-1
+pkgver = 1.0.0-2
 pkgarch = any
-pkgbuild_sha256sum = 9d9de7910240e086e38ce24e51d32d02d2d9f2e998434847840a9e80d01406dc
+pkgbuild_sha256sum = 819fe311ea322f724cdcac5c7c476c91c401875bd0074cba91cb95db024f500c
 packager = Unknown Packager
-builddate = 1789992559
+builddate = 1789993200
 builddir = /home/raihan/koppie-repo/pkg-sources/koppie-driver-manager
 startdir = /home/raihan/koppie-repo/pkg-sources/koppie-driver-manager
 buildtool = makepkg

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Koppie Driver Manager (KDM)
-Aplikasi Deteksi Hardware & Manajemen Driver Otomatis untuk Koppie Linux
+Clean, user-friendly hardware driver utility for Koppie Linux.
 """
 
 import os
@@ -9,70 +9,61 @@ import sys
 import subprocess
 import threading
 from pathlib import Path
+from PIL import Image
 
-# Pastikan lib lokal terdeteksi
+# Ensure bundled libraries are available
 CURRENT_DIR = Path(__file__).resolve().parent
 LIB_DIR = CURRENT_DIR / "lib"
 if LIB_DIR.exists():
     sys.path.insert(0, str(LIB_DIR))
 
+ASSETS_DIR = CURRENT_DIR.parent / "assets"
+LOGO_PATH = ASSETS_DIR / "koppie-logo.png"
+
 import customtkinter as ctk
 from tkinter import messagebox
 
-# Set tema CustomTkinter
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
-# Warna tema khas Koppie / Orchis (Warm Dark & Terracotta Accent)
-BG_DARK = "#1f1d20"
-CARD_BG = "#2a2628"
-CARD_HOVER = "#353032"
-ACCENT_COLOR = "#b85d56"
-ACCENT_HOVER = "#cf6e66"
-TEXT_MAIN = "#f5f5f5"
-TEXT_MUTED = "#b0a8a8"
-SUCCESS_COLOR = "#4ea873"
-WARNING_COLOR = "#e09f3e"
-INFO_COLOR = "#5a9bd4"
+# Koppie Clean Color Palette
+BG_DARK = "#1a1b20"
+CARD_BG = "#23252c"
+CARD_HOVER = "#2d3039"
+KOPPIE_CYAN = "#0cc1e0"
+KOPPIE_CYAN_HOVER = "#00a8c6"
+TEXT_PRIMARY = "#ffffff"
+TEXT_SECONDARY = "#9ca3af"
+SUCCESS_GREEN = "#10b981"
+WARNING_AMBER = "#f59e0b"
+INFO_BLUE = "#3b82f6"
 
 
-class HardwareDetector:
+class HardwareScanner:
     @staticmethod
-    def get_dmi_info():
+    def get_system_model():
         vendor_file = Path("/sys/class/dmi/id/sys_vendor")
         product_file = Path("/sys/class/dmi/id/product_name")
-        vendor = vendor_file.read_text().strip() if vendor_file.exists() else "Unknown Vendor"
-        product = product_file.read_text().strip() if product_file.exists() else "Standard PC"
+        vendor = vendor_file.read_text().strip() if vendor_file.exists() else "Unknown"
+        product = product_file.read_text().strip() if product_file.exists() else "Computer"
         return f"{vendor} {product}".strip()
 
     @staticmethod
-    def get_cpu_info():
-        try:
-            with open("/proc/cpuinfo") as f:
-                for line in f:
-                    if "model name" in line:
-                        return line.split(":")[1].strip()
-        except Exception:
-            pass
-        return "Unknown CPU"
-
-    @staticmethod
-    def get_kernel_info():
+    def get_kernel_version():
         return subprocess.getoutput("uname -r").strip()
 
     @staticmethod
-    def is_package_installed(pkg_name):
+    def is_installed(pkg_name):
         res = subprocess.run(["pacman", "-Q", pkg_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return res.returncode == 0
 
     @classmethod
-    def scan_devices(cls):
+    def detect_devices(cls):
         lspci_out = subprocess.getoutput("lspci -nnk")
         devices = []
         blocks = lspci_out.split("\n\n")
 
-        # Cek kernel saat ini untuk menentukan tipe headers (misal linux-lts -> linux-lts-headers)
-        kernel_ver = cls.get_kernel_info()
+        kernel_ver = cls.get_kernel_version()
         headers_pkg = "linux-lts-headers" if "lts" in kernel_ver else "linux-headers"
 
         for block in blocks:
@@ -82,407 +73,358 @@ class HardwareDetector:
 
             header = lines[0]
             driver_in_use = ""
-            kernel_modules = ""
             subsystem = ""
 
             for line in lines[1:]:
                 if line.startswith("Kernel driver in use:"):
                     driver_in_use = line.split(":", 1)[1].strip()
-                elif line.startswith("Kernel modules:"):
-                    kernel_modules = line.split(":", 1)[1].strip()
                 elif line.startswith("Subsystem:"):
                     subsystem = line.split(":", 1)[1].strip()
 
-            lower_hdr = header.lower()
+            lower = header.lower()
 
-            # 1. WIRELESS / WI-FI
-            if "network controller" in lower_hdr or "wireless" in lower_hdr:
+            # 1. Wireless Network
+            if "network controller" in lower or "wireless" in lower:
                 dev = {
-                    "type": "Wi-Fi (Wireless)",
-                    "title": header.split(": ", 1)[-1] if ": " in header else header,
+                    "category": "Wireless Network",
+                    "name": header.split(": ", 1)[-1] if ": " in header else header,
                     "subsystem": subsystem,
-                    "driver": driver_in_use or "Tidak ada driver aktif",
-                    "status": "info",
-                    "recommendation": "",
-                    "packages_to_install": [],
+                    "driver": driver_in_use or "None",
+                    "type": "wifi",
+                    "options": [],
+                    "selected_option": 0,
+                    "packages_needed": [],
                 }
 
-                # Cek Broadcom (BCM43xx)
-                if "broadcom" in lower_hdr or "14e4:" in lower_hdr:
-                    if "4331" in lower_hdr or "4360" in lower_hdr or "43142" in lower_hdr or "4322" in lower_hdr:
-                        is_wl_installed = cls.is_package_installed("broadcom-wl-dkms") or cls.is_package_installed("broadcom-wl")
-                        is_headers_installed = cls.is_package_installed(headers_pkg)
-
-                        if is_wl_installed and driver_in_use == "wl":
-                            dev["status"] = "optimal"
-                            dev["recommendation"] = "Driver Broadcom STA (wl) aktif dan berfungsi optimal."
-                        else:
-                            dev["status"] = "action_needed"
-                            pkgs = []
-                            if not is_headers_installed:
-                                pkgs.append(headers_pkg)
-                            if not is_wl_installed:
-                                pkgs.append("broadcom-wl-dkms")
-                            dev["packages_to_install"] = pkgs
-                            dev["recommendation"] = f"Direkomendasikan: {', '.join(pkgs)} untuk mengaktifkan Wi-Fi Broadcom."
+                if "broadcom" in lower or "14e4:" in lower:
+                    if any(x in lower for x in ["4331", "4360", "43142", "4322", "43224", "43228"]):
+                        is_wl = cls.is_installed("broadcom-wl-dkms") or cls.is_installed("broadcom-wl")
+                        dev["options"] = [
+                            {
+                                "id": "wl",
+                                "title": "broadcom-wl-dkms (Proprietary STA Driver)",
+                                "desc": "Recommended for Broadcom Wi-Fi on MacBooks & laptops. Requires DKMS.",
+                                "packages": [headers_pkg, "broadcom-wl-dkms"],
+                                "installed": is_wl
+                            },
+                            {
+                                "id": "none",
+                                "title": "Do not use this driver (Open-source fallback)",
+                                "desc": "Use kernel b43 or brcmsmac driver if supported.",
+                                "packages": [],
+                                "installed": not is_wl
+                            }
+                        ]
+                        dev["selected_option"] = 0 if is_wl else 0
+                        if not is_wl:
+                            dev["packages_needed"] = [headers_pkg, "broadcom-wl-dkms"]
                     else:
-                        dev["status"] = "optimal"
-                        dev["recommendation"] = "Broadcom menggunakan modul bawaan kernel / b43."
-
-                # Cek Intel Wireless
-                elif "intel" in lower_hdr or "8086:" in lower_hdr:
-                    dev["status"] = "optimal"
-                    dev["recommendation"] = "Intel Wireless (iwlwifi) bawaan kernel Linux & linux-firmware."
-
-                # Cek Realtek
-                elif "realtek" in lower_hdr or "10ec:" in lower_hdr:
-                    if driver_in_use:
-                        dev["status"] = "optimal"
-                        dev["recommendation"] = f"Driver Realtek ({driver_in_use}) aktif bawaan kernel."
-                    else:
-                        dev["status"] = "warning"
-                        dev["recommendation"] = "Perangkat Realtek terdeteksi. Disarankan memastikan linux-firmware terpasang."
-
-                # Lainnya (Atheros / MediaTek)
+                        dev["status_text"] = "Using open-source in-tree driver (b43/brcmfmac)"
+                elif "intel" in lower or "8086:" in lower:
+                    dev["status_text"] = "Using open-source Intel driver (iwlwifi) provided by the Linux kernel."
+                elif "realtek" in lower or "10ec:" in lower:
+                    dev["status_text"] = f"Using Realtek driver ({driver_in_use or 'rtw88'}) included in the kernel."
                 else:
-                    dev["status"] = "optimal"
-                    dev["recommendation"] = f"Driver kernel: {driver_in_use or 'Bawaan kernel / linux-firmware'}"
+                    dev["status_text"] = f"Using kernel driver: {driver_in_use or 'Generic open-source driver'}"
 
                 devices.append(dev)
 
-            # 2. ETHERNET (LAN)
-            elif "ethernet controller" in lower_hdr:
-                devices.append({
-                    "type": "Ethernet (LAN)",
-                    "title": header.split(": ", 1)[-1] if ": " in header else header,
-                    "subsystem": subsystem,
-                    "driver": driver_in_use or "Tidak ada",
-                    "status": "optimal",
-                    "recommendation": f"Driver LAN aktif di kernel ({driver_in_use or 'generic'}).",
-                    "packages_to_install": [],
-                })
-
-            # 3. GRAPHICS (GPU)
-            elif any(k in lower_hdr for k in ["vga compatible", "3d controller", "display controller"]):
+            # 2. Graphics (GPU)
+            elif any(k in lower for k in ["vga compatible", "3d controller", "display controller"]):
                 dev = {
-                    "type": "Kartu Grafis (GPU)",
-                    "title": header.split(": ", 1)[-1] if ": " in header else header,
+                    "category": "Graphics Adapter (GPU)",
+                    "name": header.split(": ", 1)[-1] if ": " in header else header,
                     "subsystem": subsystem,
                     "driver": driver_in_use or "modesetting",
-                    "status": "optimal",
-                    "recommendation": "",
-                    "packages_to_install": [],
+                    "type": "gpu",
+                    "options": [],
+                    "selected_option": 0,
+                    "packages_needed": [],
                 }
 
-                if "nvidia" in lower_hdr or "10de:" in lower_hdr:
-                    if driver_in_use == "nvidia":
-                        dev["status"] = "optimal"
-                        dev["recommendation"] = "Driver resmi NVIDIA Proprietary aktif."
-                    else:
-                        is_nv_installed = cls.is_package_installed("nvidia-open-dkms") or cls.is_package_installed("nvidia-dkms")
-                        if not is_nv_installed:
-                            dev["status"] = "action_needed"
-                            dev["packages_to_install"] = [headers_pkg, "nvidia-open-dkms"]
-                            dev["recommendation"] = f"Tersedia driver NVIDIA Proprietary ({headers_pkg}, nvidia-open-dkms)."
-                        else:
-                            dev["status"] = "optimal"
-                            dev["recommendation"] = "Driver Nouveau open-source aktif."
-                elif "intel" in lower_hdr or "8086:" in lower_hdr:
-                    dev["status"] = "optimal"
-                    dev["recommendation"] = f"Intel Graphics terakselerasi Mesa ({driver_in_use or 'i915'})."
-                elif "advanced micro devices" in lower_hdr or "amd" in lower_hdr or "ati" in lower_hdr or "1002:" in lower_hdr:
-                    dev["status"] = "optimal"
-                    dev["recommendation"] = f"AMD Radeon terakselerasi Mesa ({driver_in_use or 'amdgpu'})."
+                if "nvidia" in lower or "10de:" in lower:
+                    is_nv = cls.is_installed("nvidia-open-dkms") or cls.is_installed("nvidia-dkms")
+                    dev["options"] = [
+                        {
+                            "id": "nvidia",
+                            "title": "NVIDIA Proprietary Driver (DKMS)",
+                            "desc": "Official high-performance driver with hardware acceleration & Vulkan.",
+                            "packages": [headers_pkg, "nvidia-open-dkms"],
+                            "installed": is_nv
+                        },
+                        {
+                            "id": "nouveau",
+                            "title": "Nouveau Open-Source Driver",
+                            "desc": "Standard open-source driver included in the Linux kernel.",
+                            "packages": [],
+                            "installed": not is_nv
+                        }
+                    ]
+                    dev["selected_option"] = 0 if is_nv else 1
+                    if not is_nv:
+                        dev["packages_needed"] = [headers_pkg, "nvidia-open-dkms"]
+                elif "intel" in lower or "8086:" in lower:
+                    dev["status_text"] = f"Using Intel Mesa driver ({driver_in_use or 'i915'}) with full 3D acceleration."
+                elif "amd" in lower or "advanced micro devices" in lower or "1002:" in lower:
+                    dev["status_text"] = f"Using AMD open-source driver ({driver_in_use or 'amdgpu'}) with Mesa."
 
                 devices.append(dev)
 
         return devices
 
 
-class KoppieDriverManagerApp(ctk.CTk):
+class KoppieDriverManager(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Koppie Driver Manager (KDM)")
-        self.geometry("820x680")
-        self.minsize(750, 580)
+        self.title("Koppie Driver Manager")
+        self.geometry("780x620")
+        self.minsize(700, 520)
         self.configure(fg_color=BG_DARK)
 
-        self.detector = HardwareDetector()
         self.devices = []
+        self.option_vars = {}
+        self.scanner = HardwareScanner()
 
         self.build_ui()
-        self.refresh_hardware_async()
+        self.scan_async()
 
     def build_ui(self):
         # HEADER BAR
-        header_frame = ctk.CTkFrame(self, fg_color=CARD_BG, corner_radius=12)
-        header_frame.pack(fill="x", padx=20, pady=(18, 12))
+        header = ctk.CTkFrame(self, fg_color=CARD_BG, corner_radius=0, height=75)
+        header.pack(fill="x", side="top")
+        header.pack_propagate(False)
 
-        # Icon Koppie (Badge 'K')
-        logo_badge = ctk.CTkLabel(
-            header_frame,
-            text=" K ",
-            font=("Ubuntu", 22, "bold"),
-            fg_color=ACCENT_COLOR,
-            text_color="#ffffff",
-            corner_radius=8,
-            width=42,
-            height=42
-        )
-        logo_badge.pack(side="left", padx=(16, 12), pady=14)
+        # Koppie Logo
+        if LOGO_PATH.exists():
+            try:
+                pil_img = Image.open(LOGO_PATH).resize((46, 46), Image.Resampling.LANCZOS)
+                self.logo_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(46, 46))
+                logo_lbl = ctk.CTkLabel(header, image=self.logo_img, text="")
+                logo_lbl.pack(side="left", padx=(20, 14), pady=14)
+            except Exception:
+                pass
 
-        title_box = ctk.CTkFrame(header_frame, fg_color="transparent")
-        title_box.pack(side="left", fill="y", pady=10)
+        title_box = ctk.CTkFrame(header, fg_color="transparent")
+        title_box.pack(side="left", fill="y", pady=16)
 
-        title_lbl = ctk.CTkLabel(
+        title = ctk.CTkLabel(
             title_box,
-            text="Koppie Driver Manager",
+            text="Driver Manager",
             font=("Ubuntu", 18, "bold"),
-            text_color=TEXT_MAIN
+            text_color=TEXT_PRIMARY
         )
-        title_lbl.pack(anchor="w")
+        title.pack(anchor="w")
 
-        subtitle_lbl = ctk.CTkLabel(
+        subtitle = ctk.CTkLabel(
             title_box,
-            text="Deteksi otomatis & manajemen driver perangkat keras Koppie Linux",
+            text="Find and manage hardware drivers for your computer",
             font=("Ubuntu", 12),
-            text_color=TEXT_MUTED
+            text_color=TEXT_SECONDARY
         )
-        subtitle_lbl.pack(anchor="w")
+        subtitle.pack(anchor="w")
 
-        # Tombol Refresh di kanan atas
-        self.refresh_btn = ctk.CTkButton(
-            header_frame,
-            text="🔄 Pindai Ulang",
-            font=("Ubuntu", 13, "bold"),
-            fg_color=CARD_HOVER,
-            hover_color=ACCENT_COLOR,
-            text_color=TEXT_MAIN,
-            width=120,
-            height=36,
-            corner_radius=8,
-            command=self.refresh_hardware_async
-        )
-        self.refresh_btn.pack(side="right", padx=16)
+        # BOTTOM ACTION BAR
+        self.footer = ctk.CTkFrame(self, fg_color=CARD_BG, corner_radius=0, height=60)
+        self.footer.pack(fill="x", side="bottom")
+        self.footer.pack_propagate(False)
 
-        # INFO SISTEM CARD
-        info_frame = ctk.CTkFrame(self, fg_color=CARD_BG, corner_radius=12)
-        info_frame.pack(fill="x", padx=20, pady=(0, 12))
-
-        dmi_text = self.detector.get_dmi_info()
-        kernel_text = self.detector.get_kernel_info()
-        cpu_text = self.detector.get_cpu_info()
-
-        sys_lbl = ctk.CTkLabel(
-            info_frame,
-            text=f"💻 Perangkat: {dmi_text}   |   🐧 Kernel: {kernel_text}\n⚙️ CPU: {cpu_text}",
-            font=("Ubuntu", 12),
-            text_color=TEXT_MUTED,
-            justify="left"
-        )
-        sys_lbl.pack(anchor="w", padx=16, pady=10)
-
-        # DAFTAR HARDWARE (SCROLLABLE FRAME)
-        self.scroll_frame = ctk.CTkScrollableFrame(
-            self,
-            fg_color="transparent",
-            label_text="Perangkat & Driver Terdeteksi",
-            label_font=("Ubuntu", 14, "bold"),
-            label_text_color=TEXT_MAIN
-        )
-        self.scroll_frame.pack(fill="both", expand=True, padx=20, pady=(0, 12))
-
-        # STATUS / LOG CONSOLE AREA
-        self.log_box = ctk.CTkTextbox(
-            self,
-            height=80,
-            fg_color="#181618",
-            text_color="#a8d5ba",
-            font=("Monospace", 11),
-            corner_radius=8
-        )
-        self.log_box.pack(fill="x", padx=20, pady=(0, 16))
-        self.log_box.insert("end", "Memulai pemindaian hardware...\n")
-        self.log_box.configure(state="disabled")
-
-    def log(self, text):
-        self.log_box.configure(state="normal")
-        self.log_box.insert("end", f"{text}\n")
-        self.log_box.see("end")
-        self.log_box.configure(state="disabled")
-
-    def refresh_hardware_async(self):
-        self.refresh_btn.configure(state="disabled", text="Memindai...")
-        self.log("Memindai ulang perangkat hardware dengan lspci & kernel modules...")
-
-        # Bersihkan list yang lama
-        for widget in self.scroll_frame.winfo_children():
-            widget.destroy()
-
-        # Jalankan di background thread agar UI tidak freeze
-        threading.Thread(target=self._scan_thread, daemon=True).start()
-
-    def _scan_thread(self):
-        devices = self.detector.scan_devices()
-        self.after(0, lambda: self._update_ui_with_devices(devices))
-
-    def _update_ui_with_devices(self, devices):
-        self.devices = devices
-        self.refresh_btn.configure(state="normal", text="🔄 Pindai Ulang")
-
-        if not devices:
-            lbl = ctk.CTkLabel(
-                self.scroll_frame,
-                text="Tidak ada perangkat spesifik yang terdeteksi.",
-                font=("Ubuntu", 13),
-                text_color=TEXT_MUTED
-            )
-            lbl.pack(pady=20)
-            return
-
-        for dev in devices:
-            self.create_device_card(dev)
-
-        self.log(f"Pemindaian selesai: {len(devices)} pengontrol perangkat terdeteksi.")
-
-    def create_device_card(self, dev):
-        card = ctk.CTkFrame(self.scroll_frame, fg_color=CARD_BG, corner_radius=10)
-        card.pack(fill="x", pady=6, padx=4)
-
-        # Bagian atas kartu: Jenis & Nama
-        top_box = ctk.CTkFrame(card, fg_color="transparent")
-        top_box.pack(fill="x", padx=14, pady=(10, 4))
-
-        type_lbl = ctk.CTkLabel(
-            top_box,
-            text=f"[{dev['type']}]",
+        self.scan_btn = ctk.CTkButton(
+            self.footer,
+            text="Scan Again",
             font=("Ubuntu", 12, "bold"),
-            text_color=ACCENT_COLOR
+            fg_color="#333742",
+            hover_color="#424755",
+            text_color=TEXT_PRIMARY,
+            height=36,
+            width=110,
+            corner_radius=6,
+            command=self.scan_async
         )
-        type_lbl.pack(side="left")
+        self.scan_btn.pack(side="left", padx=20, pady=12)
 
-        # Badge status
-        if dev["status"] == "optimal":
-            badge_color = SUCCESS_COLOR
-            badge_text = "✔ Optimal / Terpasang"
-        elif dev["status"] == "action_needed":
-            badge_color = WARNING_COLOR
-            badge_text = "⚡ Perlu Install Driver"
-        else:
-            badge_color = INFO_COLOR
-            badge_text = "ℹ Informasi"
-
-        badge = ctk.CTkLabel(
-            top_box,
-            text=f" {badge_text} ",
-            font=("Ubuntu", 11, "bold"),
-            fg_color=badge_color,
-            text_color="#ffffff",
-            corner_radius=6
+        self.apply_btn = ctk.CTkButton(
+            self.footer,
+            text="Apply Changes",
+            font=("Ubuntu", 12, "bold"),
+            fg_color=KOPPIE_CYAN,
+            hover_color=KOPPIE_CYAN_HOVER,
+            text_color="#000000",
+            height=36,
+            width=130,
+            corner_radius=6,
+            state="disabled",
+            command=self.apply_changes
         )
-        badge.pack(side="right")
+        self.apply_btn.pack(side="right", padx=20, pady=12)
 
-        # Nama Hardware
-        name_lbl = ctk.CTkLabel(
-            card,
-            text=dev["title"],
-            font=("Ubuntu", 13, "bold"),
-            text_color=TEXT_MAIN,
-            anchor="w",
-            justify="left"
-        )
-        name_lbl.pack(fill="x", padx=14, pady=(0, 4))
+        # MAIN SCROLLABLE CONTENT
+        self.content = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.content.pack(fill="both", expand=True, padx=20, pady=16)
 
-        # Driver & Rekomendasi
-        driver_txt = f"Modul Kernel: {dev['driver']}"
-        if dev.get("subsystem"):
-            driver_txt += f"  |  Subsystem: {dev['subsystem']}"
-
-        detail_lbl = ctk.CTkLabel(
-            card,
-            text=driver_txt,
-            font=("Ubuntu", 11),
-            text_color=TEXT_MUTED,
+        # System info badge
+        self.info_lbl = ctk.CTkLabel(
+            self.content,
+            text="Detecting hardware configuration...",
+            font=("Ubuntu", 12),
+            text_color=TEXT_SECONDARY,
             anchor="w"
         )
-        detail_lbl.pack(fill="x", padx=14, pady=(0, 4))
+        self.info_lbl.pack(fill="x", pady=(0, 12))
 
-        rec_lbl = ctk.CTkLabel(
-            card,
-            text=dev["recommendation"],
-            font=("Ubuntu", 12),
-            text_color="#e6e1e1",
-            anchor="w",
-            justify="left"
-        )
-        rec_lbl.pack(fill="x", padx=14, pady=(0, 10))
+    def scan_async(self):
+        self.scan_btn.configure(state="disabled", text="Scanning...")
+        self.apply_btn.configure(state="disabled")
 
-        # Tombol Aksi jika butuh instalasi
-        if dev["packages_to_install"]:
-            btn_box = ctk.CTkFrame(card, fg_color="transparent")
-            btn_box.pack(fill="x", padx=14, pady=(0, 10))
+        for w in self.content.winfo_children():
+            if w != self.info_lbl:
+                w.destroy()
 
-            pkgs_str = " ".join(dev["packages_to_install"])
-            install_btn = ctk.CTkButton(
-                btn_box,
-                text=f"Pasang Driver ({pkgs_str})",
-                font=("Ubuntu", 12, "bold"),
-                fg_color=ACCENT_COLOR,
-                hover_color=ACCENT_HOVER,
-                height=32,
-                corner_radius=6,
-                command=lambda pkgs=dev["packages_to_install"]: self.install_driver(pkgs)
+        threading.Thread(target=self._scan_worker, daemon=True).start()
+
+    def _scan_worker(self):
+        devices = self.scanner.detect_devices()
+        model = self.scanner.get_system_model()
+        kernel = self.scanner.get_kernel_version()
+        self.after(0, lambda: self._render_devices(devices, model, kernel))
+
+    def _render_devices(self, devices, model, kernel):
+        self.devices = devices
+        self.scan_btn.configure(state="normal", text="Scan Again")
+        self.info_lbl.configure(text=f"Computer: {model}  •  Kernel: {kernel}")
+
+        has_actionable = False
+
+        for idx, dev in enumerate(devices):
+            card = ctk.CTkFrame(self.content, fg_color=CARD_BG, corner_radius=8)
+            card.pack(fill="x", pady=6)
+
+            # Card Header
+            header_box = ctk.CTkFrame(card, fg_color="transparent")
+            header_box.pack(fill="x", padx=16, pady=(12, 6))
+
+            cat_lbl = ctk.CTkLabel(
+                header_box,
+                text=dev["category"].upper(),
+                font=("Ubuntu", 10, "bold"),
+                text_color=KOPPIE_CYAN
             )
-            install_btn.pack(side="left")
+            cat_lbl.pack(anchor="w")
 
-    def install_driver(self, packages):
-        pkgs_str = " ".join(packages)
-        self.log(f"Memulai instalasi driver: {pkgs_str}...")
+            dev_name = ctk.CTkLabel(
+                card,
+                text=dev["name"],
+                font=("Ubuntu", 13, "bold"),
+                text_color=TEXT_PRIMARY,
+                anchor="w",
+                justify="left"
+            )
+            dev_name.pack(fill="x", padx=16, pady=(0, 6))
 
-        def _run_install():
-            # Menggunakan pkexec untuk meminta autentikasi root
-            cmd = ["pkexec", "pacman", "-S", "--needed", "--noconfirm"] + packages
-            try:
-                proc = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    bufsize=1
-                )
-                for line in proc.stdout:
-                    clean_line = line.strip()
-                    if clean_line:
-                        self.after(0, lambda l=clean_line: self.log(l))
+            # Options or Status
+            if dev.get("options"):
+                var = ctk.IntVar(value=dev["selected_option"])
+                self.option_vars[idx] = var
 
-                proc.wait()
-                if proc.returncode == 0:
-                    self.after(0, lambda: self.log(f"✔ Berhasil memasang driver: {pkgs_str}!"))
-                    self.after(0, self.refresh_hardware_async)
-                    messagebox.showinfo(
-                        "Instalasi Berhasil",
-                        f"Driver {pkgs_str} berhasil dipasang!\nSilakan restart perangkat jika diperlukan."
+                opt_box = ctk.CTkFrame(card, fg_color="transparent")
+                opt_box.pack(fill="x", padx=16, pady=(0, 12))
+
+                for o_idx, opt in enumerate(dev["options"]):
+                    r_btn = ctk.CTkRadioButton(
+                        opt_box,
+                        text=f"{opt['title']}\n{opt['desc']}",
+                        variable=var,
+                        value=o_idx,
+                        font=("Ubuntu", 12),
+                        text_color=TEXT_PRIMARY,
+                        fg_color=KOPPIE_CYAN,
+                        command=self.on_selection_change
                     )
-                else:
-                    self.after(0, lambda: self.log(f"❌ Instalasi gagal atau dibatalkan (Kode: {proc.returncode})."))
-            except Exception as e:
-                self.after(0, lambda: self.log(f"❌ Error: {str(e)}"))
+                    r_btn.pack(anchor="w", pady=4)
 
-        threading.Thread(target=_run_install, daemon=True).start()
+                if dev.get("packages_needed"):
+                    has_actionable = True
+            else:
+                # Device using in-tree driver
+                status_box = ctk.CTkFrame(card, fg_color="#1d2824", corner_radius=6)
+                status_box.pack(fill="x", padx=16, pady=(0, 12))
+
+                status_txt = dev.get("status_text", "Using standard Linux driver.")
+                st_lbl = ctk.CTkLabel(
+                    status_box,
+                    text=f"✓  {status_txt}",
+                    font=("Ubuntu", 12),
+                    text_color=SUCCESS_GREEN,
+                    anchor="w"
+                )
+                st_lbl.pack(padx=12, pady=8, anchor="w")
+
+        if not has_actionable:
+            self.apply_btn.configure(state="disabled")
+
+    def on_selection_change(self):
+        # Enable Apply Changes if user selects an uninstalled driver
+        needs_install = False
+        for idx, dev in enumerate(self.devices):
+            if idx in self.option_vars and dev.get("options"):
+                chosen_idx = self.option_vars[idx].get()
+                chosen_opt = dev["options"][chosen_idx]
+                if not chosen_opt.get("installed") and chosen_opt.get("packages"):
+                    needs_install = True
+
+        self.apply_btn.configure(state="normal" if needs_install else "disabled")
+
+    def apply_changes(self):
+        packages_to_install = []
+        for idx, dev in enumerate(self.devices):
+            if idx in self.option_vars and dev.get("options"):
+                chosen_idx = self.option_vars[idx].get()
+                chosen_opt = dev["options"][chosen_idx]
+                if not chosen_opt.get("installed") and chosen_opt.get("packages"):
+                    packages_to_install.extend(chosen_opt["packages"])
+
+        if not packages_to_install:
+            return
+
+        pkgs_str = " ".join(packages_to_install)
+        confirm = messagebox.askyesno(
+            "Apply Changes",
+            f"The following packages will be installed:\n\n{pkgs_str}\n\nDo you want to continue?"
+        )
+        if not confirm:
+            return
+
+        self.apply_btn.configure(state="disabled", text="Installing...")
+        self.scan_btn.configure(state="disabled")
+
+        def _install_worker():
+            cmd = ["pkexec", "pacman", "-S", "--needed", "--noconfirm"] + packages_to_install
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            if proc.returncode == 0:
+                self.after(0, lambda: messagebox.showinfo(
+                    "Success",
+                    "Drivers installed successfully!\nA system restart may be required for changes to take effect."
+                ))
+            else:
+                self.after(0, lambda: messagebox.showerror(
+                    "Error",
+                    f"Failed to install driver.\n\n{proc.stderr}"
+                ))
+            self.after(0, self.scan_async)
+
+        threading.Thread(target=_install_worker, daemon=True).start()
 
 
 def check_polkit_auth():
-    # Jika bukan root, minta autentikasi polkit di awal sesuai permintaan sistem Koppie
     try:
         res = subprocess.run(["pkexec", "true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if res.returncode != 0:
-            print("Autentikasi dibatalkan oleh pengguna.")
             sys.exit(0)
-    except Exception as e:
-        print(f"Peringatan polkit: {e}")
+    except Exception:
+        pass
+
 
 if __name__ == "__main__":
     check_polkit_auth()
-    app = KoppieDriverManagerApp()
+    app = KoppieDriverManager()
     app.mainloop()
