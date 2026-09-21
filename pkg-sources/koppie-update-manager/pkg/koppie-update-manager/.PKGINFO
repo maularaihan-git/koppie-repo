@@ -3,15 +3,15 @@
 pkgname = koppie-update-manager
 pkgbase = koppie-update-manager
 xdata = pkgtype=pkg
-pkgver = 1.0.0-2
-pkgdesc = Pusat Pembaruan Sistem Koppie Linux (Stable-Rolling Release)
+pkgver = 1.0.0-3
+pkgdesc = System update center for Koppie Linux (stable rolling release)
 url = 
-builddate = 1789993205
+builddate = 1789994935
 packager = Unknown Packager
-size = 1813197
+size = 2082523
 arch = any
 license = GPL
 depend = python
 depend = tk
 depend = libnotify
-optdepend = pacman-contrib: Mempercepat pemeriksaan update dengan checkupdates
+optdepend = pacman-contrib: Speed up update checks with checkupdates

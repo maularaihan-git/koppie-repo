@@ -1,5 +1,5 @@
 [Unit]
-Description=Pengingat Mingguan Pembaruan Koppie Linux
+Description=Weekly Koppie Linux update reminder
 
 [Timer]
 OnCalendar=weekly

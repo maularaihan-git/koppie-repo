@@ -9,7 +9,7 @@ fi
 
 if [ "$UPDATES" -gt 0 ]; then
     notify-send "Koppie Update Manager" \
-        "Tersedia $UPDATES pembaruan sistem yang siap dipasang.\nBuka Koppie Update Manager untuk memperbarui." \
+        "$UPDATES system updates are available.\nOpen Koppie Update Manager to install them." \
         -i system-software-update \
         -a "Koppie Linux"
 fi

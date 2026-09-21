@@ -1,13 +1,13 @@
 # Maintainer: Raihan <maularaihan-git>
 pkgname=koppie-update-manager
 pkgver=1.0.0
-pkgrel=2
-pkgdesc="Pusat Pembaruan Sistem Koppie Linux (Stable-Rolling Release)"
+pkgrel=3
+pkgdesc="System update center for Koppie Linux (stable rolling release)"
 arch=('any')
 license=('GPL')
 depends=('python' 'tk' 'libnotify')
 optdepends=(
-    'pacman-contrib: Mempercepat pemeriksaan update dengan checkupdates'
+    'pacman-contrib: Speed up update checks with checkupdates'
 )
 
 package() {
@@ -15,18 +15,24 @@ package() {
     install -d "$pkgdir/usr/bin"
     install -d "$pkgdir/usr/share/applications"
     install -d "$pkgdir/usr/lib/systemd/user"
+    install -d "$pkgdir/usr/share/icons/hicolor/512x512/apps"
+    install -d "$pkgdir/usr/share/pixmaps"
 
-    # Copy script dan library aplikasi
+    # Copy application script and libraries
     cp -r "$startdir/app/"* "$pkgdir/usr/share/koppie/koppie-update-manager/"
 
-    # Wrapper script utama di /usr/bin
+    # Install logo icon
+    install -m644 "$startdir/app/assets/koppie-logo.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/koppie-update-manager.png"
+    install -m644 "$startdir/app/assets/koppie-logo.png" "$pkgdir/usr/share/pixmaps/koppie-update-manager.png"
+
+    # Main wrapper script in /usr/bin
     cat << 'EOF' > "$pkgdir/usr/bin/koppie-update-manager"
 #!/usr/bin/env bash
 python3 /usr/share/koppie/koppie-update-manager/koppie_update_manager.py "$@"
 EOF
     chmod +x "$pkgdir/usr/bin/koppie-update-manager"
 
-    # Script Notifier mingguan
+    # Weekly notifier script
     cat << 'EOF' > "$pkgdir/usr/bin/koppie-update-notifier"
 #!/usr/bin/env bash
 ping -q -c 1 1.1.1.1 >/dev/null 2>&1 || exit 0
@@ -39,7 +45,7 @@ fi
 
 if [ "$UPDATES" -gt 0 ]; then
     notify-send "Koppie Update Manager" \
-        "Tersedia $UPDATES pembaruan sistem yang siap dipasang.\nBuka Koppie Update Manager untuk memperbarui." \
+        "$UPDATES system updates are available.\nOpen Koppie Update Manager to install them." \
         -i system-software-update \
         -a "Koppie Linux"
 fi
@@ -50,16 +56,16 @@ EOF
     cat << 'EOF' > "$pkgdir/usr/share/applications/koppie-update-manager.desktop"
 [Desktop Entry]
 Name=Koppie Update Manager
-Comment=Pusat Pembaruan Sistem Koppie Linux (Stable-Rolling)
+Comment=Manage system updates for Koppie Linux (stable rolling release)
 Exec=koppie-update-manager
-Icon=system-software-update
+Icon=koppie-update-manager
 Terminal=false
 Type=Application
 Categories=System;Settings;
 StartupNotify=true
 EOF
 
-    # Systemd user service & timer untuk notifikasi mingguan
+    # Systemd user service & timer for weekly notifications
     cat << 'EOF' > "$pkgdir/usr/lib/systemd/user/koppie-update-notifier.service"
 [Unit]
 Description=Koppie Update Notifier Service
@@ -71,7 +77,7 @@ EOF
 
     cat << 'EOF' > "$pkgdir/usr/lib/systemd/user/koppie-update-notifier.timer"
 [Unit]
-Description=Pengingat Mingguan Pembaruan Koppie Linux
+Description=Weekly Koppie Linux update reminder
 
 [Timer]
 OnCalendar=weekly

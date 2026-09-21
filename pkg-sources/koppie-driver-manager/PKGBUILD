@@ -1,25 +1,31 @@
 # Maintainer: Raihan <maularaihan-git>
 pkgname=koppie-driver-manager
 pkgver=1.0.0
-pkgrel=2
-pkgdesc="Aplikasi Deteksi Hardware & Manajemen Driver Otomatis Koppie Linux"
+pkgrel=3
+pkgdesc="Automatic hardware detection and driver manager for Koppie Linux"
 arch=('any')
 license=('GPL')
 depends=('python' 'tk')
 optdepends=(
-    'linux-lts-headers: Diperlukan untuk kompilasi modul kernel dkms'
-    'broadcom-wl-dkms: Driver Wi-Fi Broadcom untuk MacBook dan laptop tertentu'
+    'linux-lts-headers: Required for building DKMS kernel modules'
+    'broadcom-wl-dkms: Broadcom Wi-Fi driver for MacBooks and select laptops'
 )
 
 package() {
     install -d "$pkgdir/usr/share/koppie/koppie-driver-manager"
     install -d "$pkgdir/usr/bin"
     install -d "$pkgdir/usr/share/applications"
+    install -d "$pkgdir/usr/share/icons/hicolor/512x512/apps"
+    install -d "$pkgdir/usr/share/pixmaps"
 
-    # Copy script dan library
+    # Copy script and libraries
     cp -r "$startdir/app/"* "$pkgdir/usr/share/koppie/koppie-driver-manager/"
 
-    # Wrapper script di /usr/bin
+    # Install logo icon
+    install -m644 "$startdir/app/assets/koppie-logo.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/koppie-driver-manager.png"
+    install -m644 "$startdir/app/assets/koppie-logo.png" "$pkgdir/usr/share/pixmaps/koppie-driver-manager.png"
+
+    # Wrapper script in /usr/bin
     cat << 'EOF' > "$pkgdir/usr/bin/koppie-driver-manager"
 #!/usr/bin/env bash
 python3 /usr/share/koppie/koppie-driver-manager/koppie_driver_manager.py "$@"
@@ -30,9 +36,9 @@ EOF
     cat << 'EOF' > "$pkgdir/usr/share/applications/koppie-driver-manager.desktop"
 [Desktop Entry]
 Name=Koppie Driver Manager
-Comment=Deteksi Hardware & Manajemen Driver Otomatis Koppie Linux
+Comment=Detect hardware and manage drivers for Koppie Linux
 Exec=koppie-driver-manager
-Icon=preferences-system
+Icon=koppie-driver-manager
 Terminal=false
 Type=Application
 Categories=System;Settings;HardwareSettings;
