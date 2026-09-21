@@ -1,0 +1,18 @@
+pkgname=koppie-welcome
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Paket uji coba selamat datang dari Koppie Linux Repo"
+arch=('any')
+license=('GPL')
+
+package() {
+    install -d "$pkgdir/usr/bin"
+    cat << 'EOF' > "$pkgdir/usr/bin/koppie-welcome"
+#!/usr/bin/env bash
+echo "============================================="
+echo " Selamat datang di Koppie Linux Repository! "
+echo " Paket berhasil diinstall via pacman :D      "
+echo "============================================="
+EOF
+    chmod +x "$pkgdir/usr/bin/koppie-welcome"
+}

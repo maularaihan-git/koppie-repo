@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+echo "============================================="
+echo " Selamat datang di Koppie Linux Repository! "
+echo " Paket berhasil diinstall via pacman :D      "
+echo "============================================="
