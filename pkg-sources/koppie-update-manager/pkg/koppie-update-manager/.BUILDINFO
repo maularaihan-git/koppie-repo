@@ -1,11 +1,11 @@
 format = 2
 pkgname = koppie-update-manager
 pkgbase = koppie-update-manager
-pkgver = 1.0.0-3
+pkgver = 1.0.0-4
 pkgarch = any
-pkgbuild_sha256sum = 5df30d0ebdab94a3e54a24c45345a4788b4bc3b827faad98f16717494a0eba08
+pkgbuild_sha256sum = 122d4193d7969d83c228543e51ba79ab228b37b8ec9e4f0ce55c7fa57b06c14a
 packager = Unknown Packager
-builddate = 1789994935
+builddate = 1789995478
 builddir = /home/raihan/koppie-repo/pkg-sources/koppie-update-manager
 startdir = /home/raihan/koppie-repo/pkg-sources/koppie-update-manager
 buildtool = makepkg

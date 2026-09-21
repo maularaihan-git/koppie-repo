@@ -40,10 +40,37 @@ INFO_BLUE = "#3b82f6"
 
 
 class UpdateEngine:
+    CHANNEL_SCRIPT = "koppie-update-channel"
+
     @staticmethod
     def get_snapshot_date(days_ago=7):
         target = datetime.datetime.now() - datetime.timedelta(days=days_ago)
         return target.strftime("%Y/%m/%d")
+
+    @staticmethod
+    def _channel_script():
+        local = CURRENT_DIR / "koppie-update-channel.sh"
+        if local.exists():
+            return str(local)
+        return UpdateEngine.CHANNEL_SCRIPT
+
+    @staticmethod
+    def get_channel():
+        try:
+            text = Path("/etc/pacman.d/mirrorlist").read_text()
+            if "archive.archlinux.org/repos/" in text:
+                return "stable"
+        except Exception:
+            pass
+        return "current"
+
+    @classmethod
+    def set_channel(cls, mode):
+        proc = subprocess.run(
+            ["pkexec", cls._channel_script(), mode],
+            capture_output=True, text=True
+        )
+        return proc.returncode == 0, (proc.stdout + proc.stderr).strip()
 
     @classmethod
     def check_updates(cls):
@@ -162,13 +189,28 @@ class KoppieUpdateManager(ctk.CTk):
         channel_bar = ctk.CTkFrame(self, fg_color="#202229", corner_radius=8)
         channel_bar.pack(fill="x", padx=20, pady=(16, 0))
 
-        channel_title = ctk.CTkLabel(
+        self.channel_title = ctk.CTkLabel(
             channel_bar,
-            text="🛡  Release Channel: Stable Rolling (7-Day Safety Delay Enabled)",
+            text="",
             font=("Ubuntu", 12, "bold"),
             text_color=KOPPIE_CYAN
         )
-        channel_title.pack(side="left", padx=16, pady=10)
+        self.channel_title.pack(side="left", padx=16, pady=10)
+
+        self.channel_btn = ctk.CTkButton(
+            channel_bar,
+            text="",
+            font=("Ubuntu", 11, "bold"),
+            fg_color="#333742",
+            hover_color="#424755",
+            text_color=TEXT_PRIMARY,
+            height=30,
+            width=130,
+            corner_radius=6,
+            command=self.switch_channel
+        )
+        self.channel_btn.pack(side="right", padx=12, pady=6)
+        self.refresh_channel_label()
 
         # MAIN SCROLLABLE CONTENT
         self.content = ctk.CTkScrollableFrame(self, fg_color="transparent")
@@ -198,10 +240,52 @@ class KoppieUpdateManager(ctk.CTk):
         self.list_container = ctk.CTkFrame(self.content, fg_color="transparent")
         self.list_container.pack(fill="both", expand=True)
 
+    def refresh_channel_label(self):
+        if self.engine.get_channel() == "stable":
+            self.channel_title.configure(
+                text="🛡  Release Channel: Stable Rolling (7-Day Safety Delay Enabled)"
+            )
+            self.channel_btn.configure(text="Switch to Current", state="normal")
+        else:
+            self.channel_title.configure(
+                text="⚡  Release Channel: Current (Latest Arch Packages)"
+            )
+            self.channel_btn.configure(text="Switch to Stable", state="normal")
+
+    def switch_channel(self):
+        current = self.engine.get_channel()
+        target = "current" if current == "stable" else "stable"
+        label = (
+            "Current (latest packages, no safety delay)"
+            if target == "current"
+            else "Stable (7-day safety delay via Arch archive)"
+        )
+        if not messagebox.askyesno(
+            "Switch Release Channel",
+            f"Switch to {label}?\n\nThe package databases will be refreshed."
+        ):
+            return
+        self.channel_btn.configure(state="disabled", text="Switching...")
+
+        def _worker():
+            ok, msg = self.engine.set_channel(target)
+            self.after(0, lambda: self._after_switch(ok, msg))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _after_switch(self, ok, msg):
+        self.refresh_channel_label()
+        if ok:
+            self.check_async()
+        else:
+            messagebox.showerror(
+                "Channel Switch Failed",
+                f"Could not switch release channel.\n\n{msg}"
+            )
+
     def check_async(self):
         if self.is_running:
             return
-
         self.check_btn.configure(state="disabled", text="Checking...")
         self.install_btn.configure(state="disabled")
         self.status_title.configure(text="Checking for updates...")

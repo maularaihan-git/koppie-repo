@@ -1,7 +1,7 @@
 # Maintainer: Raihan <maularaihan-git>
 pkgname=koppie-update-manager
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="System update center for Koppie Linux (stable rolling release)"
 arch=('any')
 license=('GPL')
@@ -31,6 +31,9 @@ package() {
 python3 /usr/share/koppie/koppie-update-manager/koppie_update_manager.py "$@"
 EOF
     chmod +x "$pkgdir/usr/bin/koppie-update-manager"
+
+    # Release channel switcher (stable = 7-day ALA snapshot, current = mirrors)
+    install -m755 "$startdir/app/koppie-update-channel.sh" "$pkgdir/usr/bin/koppie-update-channel"
 
     # Weekly notifier script
     cat << 'EOF' > "$pkgdir/usr/bin/koppie-update-notifier"
