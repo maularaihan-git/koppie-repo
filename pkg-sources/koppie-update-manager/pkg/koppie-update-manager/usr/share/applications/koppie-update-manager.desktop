@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Koppie Update Manager
+Comment=Pusat Pembaruan Sistem Koppie Linux (Stable-Rolling)
+Exec=koppie-update-manager
+Icon=system-software-update
+Terminal=false
+Type=Application
+Categories=System;Settings;
+StartupNotify=true

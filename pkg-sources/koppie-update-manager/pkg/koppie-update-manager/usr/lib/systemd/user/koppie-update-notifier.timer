@@ -1,0 +1,9 @@
+[Unit]
+Description=Pengingat Mingguan Pembaruan Koppie Linux
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,6 @@
+[Unit]
+Description=Koppie Update Notifier Service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/koppie-update-notifier
