@@ -20,8 +20,9 @@ source=('settings.conf'
         'partition.conf'
         'users.conf'
         'displaymanager.conf'
-        'finished.conf')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+        'finished.conf'
+        'shellprocess.conf')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
     install -Dm644 settings.conf "$pkgdir/etc/calamares/settings.conf"
@@ -29,7 +30,7 @@ package() {
     install -Dm644 slideshow.qml "$pkgdir/etc/calamares/branding/koppie/slideshow.qml"
     install -Dm644 logo.png "$pkgdir/etc/calamares/branding/koppie/logo.png"
     install -Dm644 slideshow.png "$pkgdir/etc/calamares/branding/koppie/slideshow.png"
-    for m in unpackfs bootloader grubcfg packages removeuser partition users displaymanager finished; do
+    for m in unpackfs bootloader grubcfg packages removeuser partition users displaymanager finished shellprocess; do
         install -Dm644 "$m.conf" "$pkgdir/etc/calamares/modules/$m.conf"
     done
 }
