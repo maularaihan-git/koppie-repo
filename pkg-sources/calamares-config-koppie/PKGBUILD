@@ -1,0 +1,35 @@
+# Maintainer: Koppie Linux <https://github.com/maularaihan-git/koppie-repo>
+pkgname=calamares-config-koppie
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Calamares branding + offline GRUB config for Koppie Linux"
+arch=('any')
+url="https://github.com/maularaihan-git/koppie-repo"
+license=('GPL-3.0-or-later')
+depends=('calamares')
+source=('settings.conf'
+        'branding.desc'
+        'slideshow.qml'
+        'logo.png'
+        'slideshow.png'
+        'unpackfs.conf'
+        'bootloader.conf'
+        'grubcfg.conf'
+        'packages.conf'
+        'removeuser.conf'
+        'partition.conf'
+        'users.conf'
+        'displaymanager.conf'
+        'finished.conf')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+package() {
+    install -Dm644 settings.conf "$pkgdir/etc/calamares/settings.conf"
+    install -Dm644 branding.desc "$pkgdir/etc/calamares/branding/koppie/branding.desc"
+    install -Dm644 slideshow.qml "$pkgdir/etc/calamares/branding/koppie/slideshow.qml"
+    install -Dm644 logo.png "$pkgdir/etc/calamares/branding/koppie/logo.png"
+    install -Dm644 slideshow.png "$pkgdir/etc/calamares/branding/koppie/slideshow.png"
+    for m in unpackfs bootloader grubcfg packages removeuser partition users displaymanager finished; do
+        install -Dm644 "$m.conf" "$pkgdir/etc/calamares/modules/$m.conf"
+    done
+}

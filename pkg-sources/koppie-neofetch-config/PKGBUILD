@@ -1,0 +1,18 @@
+# Maintainer: Koppie Linux <https://github.com/maularaihan-git/koppie-repo>
+pkgname=koppie-neofetch-config
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Koppie ASCII logo + cyan style for neofetch (future: koppiefetch upgrade path via pacman -Syu)"
+arch=('any')
+url="https://github.com/maularaihan-git/koppie-repo"
+license=('GPL-3.0-or-later')
+depends=('neofetch')
+# Nanti kalau jadi koppiefetch: tambahkan provides=('koppiefetch') conflicts=('koppiefetch')
+source=('config.conf'
+        'koppie.ascii')
+sha256sums=('SKIP' 'SKIP')
+
+package() {
+    install -Dm644 config.conf "$pkgdir/etc/skel/.config/neofetch/config.conf"
+    install -Dm644 koppie.ascii "$pkgdir/etc/skel/.config/neofetch/koppie.ascii"
+}
