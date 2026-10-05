@@ -18,7 +18,7 @@ strings:
 images:
     productLogo:       logo.png
     productIcon:       logo.png
-    productWallpaper:  /usr/share/wallpapers/Koppie/Contest/wallpaper.png
+    productWallpaper:  /usr/share/wallpapers/Koppie/contents/Images_dark/5120x2880.png
 
 slideshowAPI:          1
 slideshow:             slideshow.qml
