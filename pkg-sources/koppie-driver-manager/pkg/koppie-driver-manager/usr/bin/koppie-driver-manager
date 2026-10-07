@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-python3 /usr/share/koppie/koppie-driver-manager/koppie_driver_manager.py "$@"

@@ -23,12 +23,6 @@ images:
 slideshowAPI:          1
 slideshow:             slideshow.qml
 
-style:
-    sidebarBackground: "#2d2d2d"
-    sidebarText:       "#ffffff"
-    sidebarTextSelect: "#29a3f3"
-    sidebarTextHighlight: "#29a3f3"
-
 windowExpanding:       normal
 windowSize:            1024px,520px
 windowPlacement:       center

@@ -1,11 +1,11 @@
 # Maintainer: Raihan <maularaihan-git>
 pkgname=koppie-driver-manager
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="Automatic hardware detection and driver manager for Koppie Linux"
 arch=('any')
 license=('GPL')
-depends=('python' 'tk')
+depends=('python' 'tk' 'python-pillow')
 optdepends=(
     'linux-lts-headers: Required for building DKMS kernel modules'
     'broadcom-wl-dkms: Broadcom Wi-Fi driver for MacBooks and select laptops'

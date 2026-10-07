@@ -1,11 +1,11 @@
 # Maintainer: Raihan <maularaihan-git>
 pkgname=koppie-update-manager
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="System update center for Koppie Linux (stable rolling release)"
 arch=('any')
 license=('GPL')
-depends=('python' 'tk' 'libnotify')
+depends=('python' 'tk' 'libnotify' 'python-pillow')
 optdepends=(
     'pacman-contrib: Speed up update checks with checkupdates'
 )

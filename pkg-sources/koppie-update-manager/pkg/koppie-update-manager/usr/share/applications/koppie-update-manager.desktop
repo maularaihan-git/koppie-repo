@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=Koppie Update Manager
-Comment=Manage system updates for Koppie Linux (stable rolling release)
-Exec=koppie-update-manager
-Icon=koppie-update-manager
-Terminal=false
-Type=Application
-Categories=System;Settings;
-StartupNotify=true

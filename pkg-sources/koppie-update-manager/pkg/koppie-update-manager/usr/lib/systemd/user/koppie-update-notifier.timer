@@ -1,9 +1,0 @@
-[Unit]
-Description=Weekly Koppie Linux update reminder
-
-[Timer]
-OnCalendar=weekly
-Persistent=true
-
-[Install]
-WantedBy=timers.target

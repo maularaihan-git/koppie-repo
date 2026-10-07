@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=Koppie Driver Manager
-Comment=Detect hardware and manage drivers for Koppie Linux
-Exec=koppie-driver-manager
-Icon=koppie-driver-manager
-Terminal=false
-Type=Application
-Categories=System;Settings;HardwareSettings;
-StartupNotify=true
