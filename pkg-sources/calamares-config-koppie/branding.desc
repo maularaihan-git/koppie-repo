@@ -20,6 +20,15 @@ images:
     productIcon:       logo.png
     productWallpaper:  /usr/share/wallpapers/Koppie/contents/Images_dark/5120x2880.png
 
+sidebar: widget
+navigation: widget
+
+style:
+   SidebarBackground:        "#2d2d2d"
+   SidebarText:              "#ffffff"
+   SidebarTextCurrent:        "#2d2d2d"
+   SidebarBackgroundCurrent: "#29a3f3"
+
 slideshowAPI:          1
 slideshow:             slideshow.qml
 
