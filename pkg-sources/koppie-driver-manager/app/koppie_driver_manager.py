@@ -17,7 +17,7 @@ LIB_DIR = CURRENT_DIR / "lib"
 if LIB_DIR.exists():
     sys.path.insert(0, str(LIB_DIR))
 
-ASSETS_DIR = CURRENT_DIR.parent / "assets"
+ASSETS_DIR = CURRENT_DIR / "assets"
 LOGO_PATH = ASSETS_DIR / "koppie-logo.png"
 
 import customtkinter as ctk
@@ -53,6 +53,18 @@ class HardwareScanner:
         return subprocess.getoutput("uname -r").strip()
 
     @staticmethod
+    def is_online(timeout=4):
+        """Cek internet (buat download driver). True = nyambung."""
+        import socket
+        for host, port in (("1.1.1.1", 53), ("8.8.8.8", 53)):
+            try:
+                socket.create_connection((host, port), timeout=timeout).close()
+                return True
+            except OSError:
+                continue
+        return False
+
+    @staticmethod
     def is_installed(pkg_name):
         res = subprocess.run(["pacman", "-Q", pkg_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return res.returncode == 0
@@ -61,7 +73,19 @@ class HardwareScanner:
     def detect_devices(cls):
         lspci_out = subprocess.getoutput("lspci -nnk")
         devices = []
-        blocks = lspci_out.split("\n\n")
+        # lspci TIDAK selalu misahin device pakai baris kosong:
+        # device baru = baris yang TIDAK diawali spasi/tab (slot "00:02.0 ...").
+        blocks = []
+        cur = []
+        for line in lspci_out.splitlines():
+            if line and not line[0].isspace():
+                if cur:
+                    blocks.append("\n".join(cur))
+                cur = [line]
+            elif line.strip():
+                cur.append(line)
+        if cur:
+            blocks.append("\n".join(cur))
 
         kernel_ver = cls.get_kernel_version()
         headers_pkg = "linux-lts-headers" if "lts" in kernel_ver else "linux-headers"
@@ -243,6 +267,14 @@ class KoppieDriverManager(ctk.CTk):
         )
         self.scan_btn.pack(side="left", padx=20, pady=12)
 
+        self.net_lbl = ctk.CTkLabel(
+            self.footer,
+            text="● mengecek koneksi...",
+            font=("Ubuntu", 12, "bold"),
+            text_color=TEXT_SECONDARY
+        )
+        self.net_lbl.pack(side="left", padx=4, pady=12)
+
         self.apply_btn = ctk.CTkButton(
             self.footer,
             text="Apply Changes",
@@ -286,12 +318,21 @@ class KoppieDriverManager(ctk.CTk):
         devices = self.scanner.detect_devices()
         model = self.scanner.get_system_model()
         kernel = self.scanner.get_kernel_version()
-        self.after(0, lambda: self._render_devices(devices, model, kernel))
+        online = self.scanner.is_online()
+        self.after(0, lambda: self._render_devices(devices, model, kernel, online))
 
-    def _render_devices(self, devices, model, kernel):
+    def _render_devices(self, devices, model, kernel, online=True):
         self.devices = devices
+        self.online = online
         self.scan_btn.configure(state="normal", text="Scan Again")
         self.info_lbl.configure(text=f"Computer: {model}  •  Kernel: {kernel}")
+        if online:
+            self.net_lbl.configure(text="● Online", text_color=SUCCESS_GREEN)
+        else:
+            self.net_lbl.configure(
+                text="● Offline — colok tethering HP/kabel buat download driver",
+                text_color=WARNING_AMBER
+            )
 
         has_actionable = False
 
@@ -375,6 +416,15 @@ class KoppieDriverManager(ctk.CTk):
         self.apply_btn.configure(state="normal" if needs_install else "disabled")
 
     def apply_changes(self):
+        if not getattr(self, "online", False):
+            if not HardwareScanner.is_online():
+                messagebox.showwarning(
+                    "Offline",
+                    "Tidak ada internet.\nColok tethering HP/kabel dulu, terus tekan Scan Again."
+                )
+                return
+            self.online = True
+
         packages_to_install = []
         for idx, dev in enumerate(self.devices):
             if idx in self.option_vars and dev.get("options"):
@@ -415,16 +465,6 @@ class KoppieDriverManager(ctk.CTk):
         threading.Thread(target=_install_worker, daemon=True).start()
 
 
-def check_polkit_auth():
-    try:
-        res = subprocess.run(["pkexec", "true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if res.returncode != 0:
-            sys.exit(0)
-    except Exception:
-        pass
-
-
 if __name__ == "__main__":
-    check_polkit_auth()
     app = KoppieDriverManager()
     app.mainloop()
