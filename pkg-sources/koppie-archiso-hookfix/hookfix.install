@@ -2,13 +2,16 @@ post_install() {
     # Patch hook archiso: stash vmlinuz ke RAM saat copytoram.
     # Jalan di sini (mid-transaction) -> SEBELUM hook mkinitcpio kernel
     # (end-transaction) -> initramfs ISO ikut ke-patch.
-    # Idempoten (cek marker) biar aman di-upgrade.
     local hook=/usr/lib/initcpio/hooks/archiso
-    if [ -f "$hook" ] && ! grep -q 'Koppie-stash-kernel' "$hook"; then
-        sed -i '/^        msg "done\."$/a\
-        # Koppie-stash-kernel: simpan vmlinuz ke RAM saat copytoram\
-        _koppie_kimg="/run/archiso/bootmnt/${archisobasedir}\/${arch}\/vmlinuz-linux-lts"\
+    if [ -f "$hook" ]; then
+        # Bersihkan blok v1 yang path-nya salah (kurang boot/), idempoten.
+        sed -i '/Koppie-stash-kernel/d; /_koppie_kimg/d' "$hook"
+        if ! grep -q 'Koppie-stash-kernel-v2' "$hook"; then
+            sed -i '/^        msg "done\."$/a\
+        # Koppie-stash-kernel-v2: simpan vmlinuz ke RAM saat copytoram\
+        _koppie_kimg="/run/archiso/bootmnt/${archisobasedir}\/boot\/${arch}\/vmlinuz-linux-lts"\
         if [ -e "${_koppie_kimg}" ]; then cp -- "${_koppie_kimg}" "/run/archiso/copytoram/vmlinuz-linux-lts" 2>\/dev\/null || true; fi' "$hook"
+        fi
     fi
 }
 

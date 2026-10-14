@@ -5,7 +5,7 @@
 # Kalau mkinitcpio-archiso update dan hook berubah total, rebase patch ini.
 pkgname=koppie-archiso-hookfix
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Patch archiso hook: stash vmlinuz to RAM on copytoram (offline install without USB)"
 arch=('any')
 url="https://github.com/maularaihan-git/koppie-repo"
