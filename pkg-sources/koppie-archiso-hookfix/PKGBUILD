@@ -1,0 +1,20 @@
+# Maintainer: Koppie Linux <https://github.com/maularaihan-git/koppie-repo>
+# Paket "jahit": TIDAK bawa file sistem, cuma nempel patch ke hook archiso
+# via post_install (jalan SEBELUM hook mkinitcpio kernel di akhir transaksi).
+# Efek: initramfs ISO ikut ke-patch -> install copytoram jalan tanpa USB.
+# Kalau mkinitcpio-archiso update dan hook berubah total, rebase patch ini.
+pkgname=koppie-archiso-hookfix
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Patch archiso hook: stash vmlinuz to RAM on copytoram (offline install without USB)"
+arch=('any')
+url="https://github.com/maularaihan-git/koppie-repo"
+license=('GPL-3.0-or-later')
+depends=('bash' 'sed' 'mkinitcpio-archiso')
+install=hookfix.install
+source=()
+sha256sums=()
+
+package() {
+    install -Dm644 /dev/null "$pkgdir/usr/share/koppie/archiso-hookfix-applied"
+}
