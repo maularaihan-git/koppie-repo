@@ -12,6 +12,7 @@ post_install() {
         _koppie_kimg="/run/archiso/bootmnt/${archisobasedir}\/boot\/${arch}\/vmlinuz-linux-lts"\
         if [ -e "${_koppie_kimg}" ]; then cp -- "${_koppie_kimg}" "/run/archiso/copytoram/vmlinuz-linux-lts" 2>\/dev\/null || true; fi' "$hook"
         fi
+        grep -q 'Koppie-stash-kernel-v2' "$hook" || echo "WARNING: koppie-archiso-hookfix: anchor tidak ketemu, patch GAGAL" >&2
     fi
 }
 
