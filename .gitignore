@@ -1,0 +1,10 @@
+# Artefak makepkg (jangan di-commit)
+src/
+pkg/
+*.pkg.tar.zst.sig
+
+# Backup repo-add
+x86_64/*.old
+
+# Build logs
+*.log
