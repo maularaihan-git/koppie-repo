@@ -1,7 +1,7 @@
 # Maintainer: Koppie Linux <https://github.com/maularaihan-git/koppie-repo>
 pkgname=calamares-config-koppie
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="Calamares branding + offline GRUB config for Koppie Linux"
 arch=('any')
 url="https://github.com/maularaihan-git/koppie-repo"
