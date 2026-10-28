@@ -1,7 +1,7 @@
 # Maintainer: Raihan <maularaihan-git>
 pkgname=aur-store
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Modern graphical AUR and Arch package store for Koppie Linux"
 arch=('any')
 license=('GPL')
