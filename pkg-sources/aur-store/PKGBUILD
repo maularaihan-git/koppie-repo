@@ -1,0 +1,43 @@
+# Maintainer: Raihan <maularaihan-git>
+pkgname=aur-store
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Modern graphical AUR and Arch package store for Koppie Linux"
+arch=('any')
+license=('GPL')
+depends=('python' 'tk' 'python-pillow' 'yay')
+
+package() {
+    install -d "$pkgdir/usr/share/koppie/aur-store"
+    install -d "$pkgdir/usr/bin"
+    install -d "$pkgdir/usr/share/applications"
+    install -d "$pkgdir/usr/share/icons/hicolor/512x512/apps"
+    install -d "$pkgdir/usr/share/pixmaps"
+
+    # Copy application script and bundled libraries
+    cp -r "$startdir/app/"* "$pkgdir/usr/share/koppie/aur-store/"
+
+    # Install logo icon
+    install -m644 "$startdir/app/assets/aur-store.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/aur-store.png"
+    install -m644 "$startdir/app/assets/aur-store.png" "$pkgdir/usr/share/pixmaps/aur-store.png"
+
+    # Wrapper script in /usr/bin
+    cat << 'WRAPPER' > "$pkgdir/usr/bin/aur-store"
+#!/usr/bin/env bash
+python3 /usr/share/koppie/aur-store/aur_store.py "$@"
+WRAPPER
+    chmod +x "$pkgdir/usr/bin/aur-store"
+
+    # Desktop file
+    cat << 'DESKTOP' > "$pkgdir/usr/share/applications/aur-store.desktop"
+[Desktop Entry]
+Name=AUR Store
+Comment=Discover, install, and manage Arch Linux and AUR applications
+Exec=aur-store
+Icon=aur-store
+Terminal=false
+Type=Application
+Categories=System;Settings;PackageManager;
+StartupNotify=true
+DESKTOP
+}
